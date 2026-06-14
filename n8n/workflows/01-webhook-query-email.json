@@ -1,0 +1,135 @@
+{
+  "name": "Webhook → Query → Email Results",
+  "nodes": [
+    {
+      "id": "node-webhook-1",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "text-to-sql-query",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-http-1",
+      "name": "Query Text-to-SQL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [250, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/api/n8n/webhook/query-simple",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "JSON",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.body.question }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "node-email-1",
+      "name": "Send Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 1,
+      "position": [500, 300],
+      "parameters": {
+        "fromEmail": "={{ $credentials.smtp.user }}",
+        "toEmail": "={{ $json.body.email }}",
+        "subject": "={{ \"Text-to-SQL Query Results: \" + $json.body.question.substring(0, 50) }}",
+        "text": "={{ $json.output }}",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": "SMTP"
+      }
+    },
+    {
+      "id": "node-if-1",
+      "name": "Has Email?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [250, 500],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.body.email !== undefined && $json.body.email !== '' }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-noop-1",
+      "name": "Response to Webhook",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [500, 500],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Query Text-to-SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Text-to-SQL": {
+      "main": [
+        [
+          {
+            "node": "Has Email?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Email?": {
+      "main": [
+        [
+          {
+            "node": "Send Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Response to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["text-to-sql", "email", "webhook"],
+  "createdAt": "",
+  "updatedAt": ""
+}

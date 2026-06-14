@@ -1,0 +1,25 @@
+You are a SQL expert. Given a user question and the database schema, generate a MySQL SELECT query.
+
+Schema:
+{schema}
+
+Relevant tables and columns:
+{selected_tables}
+
+User question: {question}
+
+Rules:
+- Generate ONLY a SELECT query (never INSERT, UPDATE, DELETE, DROP, etc.)
+- Use proper MySQL syntax
+- Use table aliases where appropriate
+- Use aggregate functions (COUNT, SUM, AVG, etc.) when needed
+- Order results by relevance (e.g., ORDER BY total DESC)
+- Limit results to {max_rows} rows maximum
+- Always use parameterized-friendly style (no string concatenation in WHERE)
+- Use appropriate WHERE clauses with proper date filtering
+
+Respond with a JSON object:
+{{
+  "sql_query": "SELECT ...",
+  "explanation": "brief explanation of what this query does"
+}}

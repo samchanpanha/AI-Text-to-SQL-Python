@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Text-to-SQL Chat</title>
+<link rel="stylesheet" href="/chat/style.css">
+</head>
+<body>
+<div class="chat-container">
+  <div class="chat-header">
+    <h1>Data Query Assistant</h1>
+    <p>Ask questions about your data in plain English</p>
+  </div>
+  <div class="chat-messages" id="messages"></div>
+  <div class="chat-input">
+    <input type="text" id="input" placeholder="e.g., What were our top 5 products last month?" autofocus>
+    <button id="send">Send</button>
+  </div>
+</div>
+<script src="/chat/chat.js"></script>
+</body>
+</html>

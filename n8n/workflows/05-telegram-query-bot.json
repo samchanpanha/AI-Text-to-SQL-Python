@@ -1,0 +1,178 @@
+{
+  "name": "Telegram Bot → Query → Reply",
+  "nodes": [
+    {
+      "id": "node-tg-trigger-1",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {}
+    },
+    {
+      "id": "node-if-1",
+      "name": "Is /ask command?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [250, 300],
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{ $json.message.text }}",
+              "operation": "startsWith",
+              "value2": "/ask"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-code-1",
+      "name": "Extract Question",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 200],
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst text = item.message?.text || '';\nconst question = text.replace('/ask', '').trim();\nconst chatId = item.message?.chat?.id;\n\nif (!question) {\n  return [{json: {error: 'Please provide a question. Usage: /ask What were total sales last month?', chatId: chatId}}];\n}\n\nreturn [{json: {question: question, chatId: chatId}}];"
+      }
+    },
+    {
+      "id": "node-http-1",
+      "name": "Query Text-to-SQL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [650, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/api/n8n/webhook/query",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "JSON",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.question }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "node-tg-send-1",
+      "name": "Send Answer",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [850, 200],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.output }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": "Telegram API"
+      }
+    },
+    {
+      "id": "node-help-1",
+      "name": "Send Help Message",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [450, 400],
+      "parameters": {
+        "chatId": "={{ $json.message.chat.id }}",
+        "text": "Welcome to Text-to-SQL Bot!\n\nCommands:\n/ask <question> - Ask a data question\n/list - List available reports\n\nExample: /ask What were our top 5 products?",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": "Telegram API"
+      }
+    },
+    {
+      "id": "node-error-1",
+      "name": "Error Handler",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ 'Sorry, I encountered an error: ' + ($json.error || 'Unknown error') }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": "Telegram API"
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Is /ask command?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is /ask command?": {
+      "main": [
+        [
+          {
+            "node": "Extract Question",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send Help Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Question": {
+      "main": [
+        [
+          {
+            "node": "Query Text-to-SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Text-to-SQL": {
+      "main": [
+        [
+          {
+            "node": "Send Answer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Handler",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["text-to-sql", "telegram", "bot"],
+  "createdAt": "",
+  "updatedAt": ""
+}

@@ -1,0 +1,112 @@
+{
+  "name": "Slack Slash Command → Query → Slack Reply",
+  "nodes": [
+    {
+      "id": "node-webhook-1",
+      "name": "Slack Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "slack-text-to-sql",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-code-1",
+      "name": "Extract Question",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [250, 300],
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\n// Handle Slack slash command payload\nconst text = item.text || item.body?.text || '';\nconst channel = item.channel_id || item.body?.channel_id || '';\nconst user = item.user_name || item.body?.user_name || '';\n\nreturn [{\n  json: {\n    question: text,\n    channel: channel,\n    user: user\n  }\n}];"
+      }
+    },
+    {
+      "id": "node-http-1",
+      "name": "Query Text-to-SQL",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/api/n8n/webhook/query-simple",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "JSON",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "question",
+              "value": "={{ $json.question }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 30000
+        }
+      }
+    },
+    {
+      "id": "node-slack-1",
+      "name": "Send Slack Message",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 1,
+      "position": [750, 300],
+      "parameters": {
+        "channel": "={{ $json.channel }}",
+        "text": "={{ $json.output }}",
+        "asUser": false,
+        "options": {}
+      },
+      "credentials": {
+        "slackApi": "Slack API"
+      }
+    }
+  ],
+  "connections": {
+    "Slack Webhook": {
+      "main": [
+        [
+          {
+            "node": "Extract Question",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Question": {
+      "main": [
+        [
+          {
+            "node": "Query Text-to-SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Text-to-SQL": {
+      "main": [
+        [
+          {
+            "node": "Send Slack Message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["text-to-sql", "slack", "webhook"],
+  "createdAt": "",
+  "updatedAt": ""
+}

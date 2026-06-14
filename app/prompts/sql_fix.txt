@@ -1,0 +1,21 @@
+The following SQL query produced an error when executed against MySQL.
+
+Original query:
+{sql_query}
+
+Error message:
+{error}
+
+Schema:
+{schema}
+
+User's original question:
+{question}
+
+Fix the SQL query to resolve the error. Ensure the query is valid MySQL syntax and semantically correct for the question.
+
+Respond with a JSON object:
+{{
+  "sql_query": "the corrected SELECT query",
+  "explanation": "what was wrong and how it was fixed"
+}}

@@ -1,0 +1,15 @@
+Given a user question and the database schema below, select the tables and columns needed to answer the question.
+
+Schema:
+{schema}
+
+User question: {question}
+
+Respond with a JSON object:
+{{
+  "tables": ["table1", "table2"],
+  "columns": ["table1.column1", "table2.column2"],
+  "reasoning": "why these tables are relevant"
+}}
+
+Only include tables and columns that are actually needed. Do not select all columns unless specifically asked.

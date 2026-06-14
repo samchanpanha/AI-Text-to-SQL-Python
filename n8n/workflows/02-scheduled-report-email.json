@@ -1,0 +1,155 @@
+{
+  "name": "Scheduled Report → Email",
+  "nodes": [
+    {
+      "id": "node-schedule-1",
+      "name": "Cron Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-http-1",
+      "name": "Get Task List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [250, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "http://app:8000/api/n8n/tasks",
+        "authentication": "none",
+        "options": {}
+      }
+    },
+    {
+      "id": "node-code-1",
+      "name": "Filter Active Tasks",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [450, 300],
+      "parameters": {
+        "jsCode": "const tasks = $input.all();\nconst active = tasks.filter(t => t.json.enabled);\n// Return first active task to trigger\nreturn active.length > 0 ? [{json: active[0]}] : [{json: null}];"
+      }
+    },
+    {
+      "id": "node-if-1",
+      "name": "Has Active Task?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [650, 300],
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.id !== undefined && $json.id !== null }}",
+              "value2": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-exec-1",
+      "name": "Execute Task",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [850, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "http://app:8000/api/n8n/webhook/execute-task",
+        "authentication": "none",
+        "sendBody": true,
+        "contentType": "JSON",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "task_id",
+              "value": "={{ $json.id }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 600000
+        }
+      }
+    },
+    {
+      "id": "node-noop-1",
+      "name": "No Active Tasks",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [850, 400],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Cron Trigger": {
+      "main": [
+        [
+          {
+            "node": "Get Task List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Task List": {
+      "main": [
+        [
+          {
+            "node": "Filter Active Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Filter Active Tasks": {
+      "main": [
+        [
+          {
+            "node": "Has Active Task?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Active Task?": {
+      "main": [
+        [
+          {
+            "node": "Execute Task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "No Active Tasks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": ["text-to-sql", "scheduled", "report", "email"],
+  "createdAt": "",
+  "updatedAt": ""
+}

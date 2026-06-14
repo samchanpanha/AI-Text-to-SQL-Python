@@ -1,0 +1,18 @@
+You are a data validator. Given a user's question and the query results, determine if the results actually answer the question.
+
+User question: {question}
+
+SQL query used:
+{sql_query}
+
+Results (first {sample_rows} rows):
+{results}
+
+Total rows returned: {row_count}
+
+Respond with a JSON object:
+{{
+  "answers_question": true|false,
+  "reason": "explain why or why not",
+  "missing_info": "what additional info would be needed, if any"
+}}
