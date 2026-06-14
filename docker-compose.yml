@@ -12,6 +12,19 @@ services:
       - logs_data:/var/log/app
     restart: unless-stopped
 
+  frontend:
+    build:
+      context: ./nuxt
+      dockerfile: Dockerfile
+    environment:
+      NUXT_PUBLIC_API_BASE_URL: http://app:8000
+      NUXT_PUBLIC_WS_URL: ws://app:8000
+      NUXT_HOST: 0.0.0.0
+      NUXT_PORT: 3000
+    depends_on:
+      - app
+    restart: unless-stopped
+
   mysql:
     image: mysql:8.0
     environment:
@@ -55,3 +68,4 @@ volumes:
   report_temp:
   n8n_data:
   logs_data:
+  frontend_node_modules:
