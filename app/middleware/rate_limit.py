@@ -30,7 +30,7 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
 
     async def dispatch(self, request: Request, call_next):
         # Skip rate limiting for health checks and static files
-        if request.url.path in ("/health", "/metrics") or request.url.path.startswith("/chat/"):
+        if request.url.path in ("/health", "/metrics", "/api/auth/login") or request.url.path.startswith("/chat/") or request.url.path.startswith("/telegram/"):
             return await call_next(request)
 
         identifier = await self._get_identifier(request)

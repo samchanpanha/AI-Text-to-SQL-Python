@@ -1,5 +1,6 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
+from app.auth.dependencies import require_auth
 from app.models.schemas import QueryRequest, QueryResponse
 from app.agents.triage import triage_question
 from app.agents.table_selector import select_tables, get_filtered_schema
@@ -13,7 +14,7 @@ router = APIRouter(tags=["query"])
 
 
 @router.post("/query", response_model=QueryResponse)
-async def query(req: QueryRequest):
+async def query(req: QueryRequest, _=Depends(require_auth)):
     """Main text-to-SQL endpoint: question in → answer out."""
 
     # Step 1: Triage

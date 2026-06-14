@@ -1,7 +1,9 @@
 from datetime import datetime, timedelta
 
-from fastapi import APIRouter, Query, HTTPException
+from fastapi import APIRouter, Depends, Query, HTTPException
 from sqlalchemy import desc
+
+from app.auth.dependencies import require_admin
 
 from app.database.connection import SessionLocal
 from app.database.models import AuditLog, LlmCallLog, TaskExecutionLog
@@ -11,7 +13,7 @@ router = APIRouter(prefix="/logs", tags=["logs"])
 
 
 @router.get("/audit")
-async def get_audit_logs(
+async def get_audit_logs(_=Depends(require_admin),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=500),
     level: int | None = Query(None, ge=0),
@@ -81,7 +83,7 @@ async def get_audit_logs(
 
 
 @router.get("/audit/stats")
-async def get_audit_stats(days: int = Query(7, ge=1, le=365)):
+async def get_audit_stats(_=Depends(require_admin), days: int = Query(7, ge=1, le=365)):
     """Aggregated statistics on audit logs."""
     db = SessionLocal()
     try:
@@ -132,7 +134,7 @@ async def get_audit_stats(days: int = Query(7, ge=1, le=365)):
 
 
 @router.get("/llm")
-async def get_llm_logs(
+async def get_llm_logs(_=Depends(require_admin),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
     model: str | None = None,
@@ -194,7 +196,7 @@ async def get_llm_logs(
 
 
 @router.get("/llm/{log_id}")
-async def get_llm_log_detail(log_id: int):
+async def get_llm_log_detail(log_id: int, _=Depends(require_admin)):
     """Get full detail of a specific LLM call (prompts + response)."""
     db = SessionLocal()
     try:
@@ -221,7 +223,7 @@ async def get_llm_log_detail(log_id: int):
 
 
 @router.get("/llm/stats")
-async def get_llm_stats(days: int = Query(7, ge=1, le=365)):
+async def get_llm_stats(_=Depends(require_admin), days: int = Query(7, ge=1, le=365)):
     """LLM usage and cost statistics."""
     db = SessionLocal()
     try:
@@ -292,7 +294,7 @@ async def get_llm_stats(days: int = Query(7, ge=1, le=365)):
 
 
 @router.get("/task-executions")
-async def get_task_execution_logs(
+async def get_task_execution_logs(_=Depends(require_admin),
     page: int = Query(1, ge=1),
     per_page: int = Query(50, ge=1, le=200),
     task_id: int | None = None,
@@ -343,7 +345,7 @@ async def get_task_execution_logs(
 
 
 @router.post("/cleanup")
-async def trigger_log_cleanup(days: int = Query(30, ge=1, le=365)):
+async def trigger_log_cleanup(_=Depends(require_admin), days: int = Query(30, ge=1, le=365)):
     """Manually trigger log cleanup. Deletes logs older than `days`."""
     from app.logging.cleanup import cleanup_logs
 

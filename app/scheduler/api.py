@@ -3,6 +3,8 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
+from app.auth.dependencies import require_auth, require_admin
+
 from app.database.connection import get_db
 from app.database.models import (
     ScheduledTask, ReportDefinition, DeliveryConfig,
@@ -22,7 +24,7 @@ router = APIRouter(prefix="/tasks", tags=["scheduler"])
 
 
 @router.post("", response_model=TaskResponse, status_code=201)
-def create_task(body: TaskCreate, db: Session = Depends(get_db)):
+def create_task(body: TaskCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     task = ScheduledTask(
         name=body.name,
         description=body.description,
@@ -48,12 +50,12 @@ def create_task(body: TaskCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[TaskResponse])
-def list_tasks(db: Session = Depends(get_db)):
+def list_tasks(db: Session = Depends(get_db), _=Depends(require_auth)):
     return db.query(ScheduledTask).order_by(ScheduledTask.created_at.desc()).all()
 
 
 @router.get("/{task_id}", response_model=TaskResponse)
-def get_task(task_id: int, db: Session = Depends(get_db)):
+def get_task(task_id: int, db: Session = Depends(get_db), _=Depends(require_auth)):
     task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
     if not task:
         raise HTTPException(404, "Task not found")
@@ -61,7 +63,7 @@ def get_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.put("/{task_id}", response_model=TaskResponse)
-def update_task(task_id: int, body: TaskUpdate, db: Session = Depends(get_db)):
+def update_task(task_id: int, body: TaskUpdate, db: Session = Depends(get_db), _=Depends(require_admin)):
     task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
     if not task:
         raise HTTPException(404, "Task not found")
@@ -87,7 +89,7 @@ def update_task(task_id: int, body: TaskUpdate, db: Session = Depends(get_db)):
 
 
 @router.delete("/{task_id}", status_code=204)
-def delete_task(task_id: int, db: Session = Depends(get_db)):
+def delete_task(task_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
     if not task:
         raise HTTPException(404, "Task not found")
@@ -97,12 +99,12 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{task_id}/reports", response_model=list[ReportDefinitionResponse])
-def list_reports(task_id: int, db: Session = Depends(get_db)):
+def list_reports(task_id: int, db: Session = Depends(get_db), _=Depends(require_auth)):
     return db.query(ReportDefinition).filter(ReportDefinition.task_id == task_id).order_by(ReportDefinition.sort_order).all()
 
 
 @router.post("/{task_id}/reports", response_model=ReportDefinitionResponse, status_code=201)
-def add_report(task_id: int, body: ReportDefinitionCreate, db: Session = Depends(get_db)):
+def add_report(task_id: int, body: ReportDefinitionCreate, db: Session = Depends(get_db), _=Depends(require_admin)):
     task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
     if not task:
         raise HTTPException(404, "Task not found")
@@ -121,7 +123,7 @@ def add_report(task_id: int, body: ReportDefinitionCreate, db: Session = Depends
 
 
 @router.delete("/{task_id}/reports/{report_id}", status_code=204)
-def delete_report(task_id: int, report_id: int, db: Session = Depends(get_db)):
+def delete_report(task_id: int, report_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     report = db.query(ReportDefinition).filter(
         ReportDefinition.id == report_id,
         ReportDefinition.task_id == task_id,
@@ -139,6 +141,7 @@ def add_delivery(
     email_body: EmailDeliveryCreate | None = None,
     telegram_body: TelegramDeliveryCreate | None = None,
     db: Session = Depends(get_db),
+    _=Depends(require_admin),
 ):
     task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
     if not task:
@@ -179,7 +182,7 @@ def add_delivery(
 
 
 @router.post("/{task_id}/execute", response_model=TaskExecuteResponse)
-def execute_task_now(task_id: int, db: Session = Depends(get_db)):
+def execute_task_now(task_id: int, db: Session = Depends(get_db), _=Depends(require_admin)):
     task = db.query(ScheduledTask).filter(ScheduledTask.id == task_id).first()
     if not task:
         raise HTTPException(404, "Task not found")
@@ -196,7 +199,7 @@ def execute_task_now(task_id: int, db: Session = Depends(get_db)):
 
 
 @router.get("/{task_id}/logs")
-def list_logs(task_id: int, db: Session = Depends(get_db)):
+def list_logs(task_id: int, db: Session = Depends(get_db), _=Depends(require_auth)):
     return db.query(TaskExecutionLog).filter(
         TaskExecutionLog.task_id == task_id
     ).order_by(TaskExecutionLog.started_at.desc()).limit(50).all()

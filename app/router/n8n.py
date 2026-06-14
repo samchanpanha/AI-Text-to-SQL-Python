@@ -2,8 +2,10 @@
 n8n-compatible webhook endpoints.
 Returns data in flat, easy-to-parse formats that n8n HTTP Request nodes consume cleanly.
 """
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
+
+from app.auth.dependencies import require_auth
 
 from app.models.schemas import QueryRequest
 from app.router.query import query as query_endpoint
@@ -35,7 +37,7 @@ class N8nExecuteTaskRequest(BaseModel):
 # ── Endpoints ──
 
 @router.post("/webhook/query")
-async def n8n_query(body: N8nQueryRequest):
+async def n8n_query(body: N8nQueryRequest, _=Depends(require_auth)):
     """Webhook: question in → answer + metadata out. Main n8n entry point."""
     try:
         result = await query_endpoint(QueryRequest(question=body.question))
@@ -55,7 +57,7 @@ async def n8n_query(body: N8nQueryRequest):
 
 
 @router.post("/webhook/query-simple")
-async def n8n_query_simple(body: N8nQueryRequest):
+async def n8n_query_simple(body: N8nQueryRequest, _=Depends(require_auth)):
     """Webhook: question in → plain answer out (no metadata)."""
     try:
         result = await query_endpoint(QueryRequest(question=body.question))
@@ -65,7 +67,7 @@ async def n8n_query_simple(body: N8nQueryRequest):
 
 
 @router.post("/webhook/execute-task")
-async def n8n_execute_task(body: N8nExecuteTaskRequest):
+async def n8n_execute_task(body: N8nExecuteTaskRequest, _=Depends(require_auth)):
     """Webhook: trigger a scheduled task immediately. Returns once files are ready."""
     db = SessionLocal()
     try:
@@ -92,7 +94,7 @@ async def n8n_execute_task(body: N8nExecuteTaskRequest):
 
 
 @router.post("/webhook/query-and-send")
-async def n8n_query_and_send(body: N8nQueryAndSendRequest):
+async def n8n_query_and_send(body: N8nQueryAndSendRequest, _=Depends(require_auth)):
     """Webhook: question → query → auto-deliver results via email or Telegram."""
     try:
         query_result = await query_endpoint(QueryRequest(question=body.question))
@@ -145,7 +147,7 @@ async def n8n_query_and_send(body: N8nQueryAndSendRequest):
 
 
 @router.get("/tasks")
-async def n8n_list_tasks():
+async def n8n_list_tasks(_=Depends(require_auth)):
     """List available tasks — n8n can use this for dynamic options."""
     db = SessionLocal()
     try:
@@ -166,14 +168,14 @@ async def n8n_list_tasks():
 
 
 @router.get("/schema")
-async def n8n_schema():
+async def n8n_schema(_=Depends(require_auth)):
     """Return database schema as structured JSON for n8n processing."""
     schemas = get_table_schemas()
     return schemas
 
 
 @router.get("/schema/text")
-async def n8n_schema_text():
+async def n8n_schema_text(_=Depends(require_auth)):
     """Return database schema as plain text for LLM prompts."""
     schemas = get_table_schemas()
     return {"schema": format_schema_for_prompt(schemas)}
